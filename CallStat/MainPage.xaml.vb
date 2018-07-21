@@ -23,6 +23,7 @@ Public NotInheritable Class MainPage
     Private mlDane As List(Of GrupaRozmow)
     Private miSort As Integer = 2
     Private mbSortDesc As Boolean = True
+    Private miRange As Integer = 0
 
 
 
@@ -30,7 +31,7 @@ Public NotInheritable Class MainPage
         mlDane = New List(Of GrupaRozmow)
 
         Dim oCallHist As PhoneCallHistoryStore = Nothing
-        Dim sError = ""
+        Dim sError As String = ""
         Try
             oCallHist = Await PhoneCallHistoryManager.RequestStoreAsync(PhoneCallHistoryStoreAccessType.AllEntriesLimitedReadWrite)
         Catch ex As Exception
@@ -47,17 +48,22 @@ Public NotInheritable Class MainPage
             Exit Function
         End If
 
-        Dim oHistReader = oCallHist.GetEntryReader()
-        Dim sFirstDate = ""
-        Dim iCallsMissed = 0
-        Dim iCallsNumOut = 0
-        Dim iCallsNumIn = 0
-        Dim iCallsTimeOut = 0
-        Dim iCallsTimeIn = 0
-        Dim sFullData = ""
+        Dim oHistReader As PhoneCallHistoryEntryReader = oCallHist.GetEntryReader()
+        Dim sFirstDate As String = ""
+        Dim iCallsMissed As Integer = 0
+        Dim iCallsNumOut As Integer = 0
+        Dim iCallsNumIn As Integer = 0
+        Dim iCallsTimeOut As Integer = 0
+        Dim iCallsTimeIn As Integer = 0
+        Dim sFullData As String = ""
         Dim oHistData As IReadOnlyList(Of PhoneCallHistoryEntry)
 
-        Dim iGuard = 0
+        ' 20180721, all/month/day stat (optymalizacja)
+        Dim iDzisDay As Integer = Date.Now.Day
+        Dim iDzisMon As Integer = Date.Now.Month
+        Dim iZakres As Integer = App.GetSettingsInt("RangeMode")
+
+        Dim iGuard As Integer = 0
 
         While iGuard < 1000
             iGuard += 1
@@ -65,12 +71,19 @@ Public NotInheritable Class MainPage
             oHistData = Await oHistReader.ReadBatchAsync()
             If oHistData.Count < 1 Then Exit While
 
-            For Each oCall In oHistData
+            For Each oCall As PhoneCallHistoryEntry In oHistData
+
+                ' 20180721, all/month/day stat
+                Select Case iZakres
+                    Case 1  ' miesiac
+                        If oCall.StartTime.Month <> iDzisMon Then Exit While
+                    Case 2  ' dzien
+                        If oCall.StartTime.Day <> iDzisDay Then Exit While
+                End Select
 
                 sFirstDate = oCall.StartTime.ToString   ' bo zaczyna od najmlodszego, czyli najstarsze bedzie ostatnie
 
-
-                Dim oItem = mlDane.Find(Function(x) x.Nazwa.Equals(oCall.Address.DisplayName))
+                Dim oItem As GrupaRozmow = mlDane.Find(Function(x) x.Nazwa.Equals(oCall.Address.DisplayName))
                 If oItem Is Nothing Then
                     ' If Not mlDane.Exists(Function(x) x.Nazwa.Equals(oCall.Address.DisplayName)) Then
                     oItem = New GrupaRozmow
@@ -81,7 +94,7 @@ Public NotInheritable Class MainPage
                 ' 20180601: Crash [timespan_getvalue ze niby w PageLoaded, ale to moze byc tylko tu]
                 '               "Or" na "OrElse", bez siegania do Duration gdy IsMissed
                 '               oraz dodany warunek Is Nothing 
-                If oCall.IsMissed OrElse oCall.Duration Is Nothing OrElse oCall.Duration.Value.TotalSeconds = 0 Then
+                If oCall.IsMissed OrElse oCall.Duration Is Nothing OrElse oCall.Duration.HasValue = False OrElse oCall.Duration.Value.TotalSeconds = 0 Then
                     oItem.iMissed += 1
                     iCallsMissed += 1
                 Else
@@ -105,9 +118,10 @@ Public NotInheritable Class MainPage
                     oCall.StartTime.ToString & vbTab &
                     oCall.Duration.Value.TotalMinutes & vbCrLf
             Next
+
         End While
 
-        Dim oClipCont = New DataPackage
+        Dim oClipCont As DataPackage = New DataPackage
         oClipCont.RequestedOperation = DataPackageOperation.Copy
         oClipCont.SetText(sFullData)
         Clipboard.SetContent(oClipCont)
@@ -176,7 +190,6 @@ Public NotInheritable Class MainPage
     End Sub
 
     Private Async Sub uiPage_Loaded(sender As Object, e As RoutedEventArgs)
-
         Await ReadData() ' wraz z global stats
         uiResetMarks(App.GetSettingsInt("SortMode", 2), App.GetSettingsBool("SortDesc", True))
     End Sub
@@ -198,7 +211,15 @@ Public NotInheritable Class MainPage
         mbSortDesc = bDesc
         App.SetSettingsInt("SortMode", miSort)
         App.SetSettingsBool("SortDesc", mbSortDesc)
-        uiRefresh_Click(Nothing, Nothing)
+        uiRefresh_Click(Nothing, Nothing) ' pokaż stat
+    End Sub
+    Private Sub uiResetZakres(iMode As Integer)
+        uiZakresAll.IsChecked = If(iMode = 0, True, False)
+        uiZakresMonth.IsChecked = If(iMode = 1, True, False)
+        uiZakresDay.IsChecked = If(iMode = 2, True, False)
+        miRange = iMode
+        App.SetSettingsInt("RangeMode", miRange)
+        uiPage_Loaded(Nothing, Nothing) ' odczytaj historie, pokaż stat
     End Sub
     Private Sub uiSortDesc_Click(sender As Object, e As RoutedEventArgs) Handles uiSortDesc.Click
         uiResetMarks(miSort, Not mbSortDesc)
@@ -226,5 +247,17 @@ Public NotInheritable Class MainPage
 
     Private Sub uiSortAllCnt_Click(sender As Object, e As RoutedEventArgs) Handles uiSortAllCnt.Click
         uiResetMarks(1, mbSortDesc)
+    End Sub
+
+    Private Sub uiZakresAll_Click(sender As Object, e As RoutedEventArgs) Handles uiZakresAll.Click
+        uiResetZakres(0)
+    End Sub
+
+    Private Sub uiZakresMonth_Click(sender As Object, e As RoutedEventArgs) Handles uiZakresMonth.Click
+        uiResetZakres(1)
+    End Sub
+
+    Private Sub uiZakresDay_Click(sender As Object, e As RoutedEventArgs) Handles uiZakresDay.Click
+        uiResetZakres(2)
     End Sub
 End Class

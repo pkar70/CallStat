@@ -66,6 +66,15 @@
                     </MenuFlyout>
                 </AppBarButton.Flyout>
             </AppBarButton>
+            <AppBarButton x:Uid="uiZakres" Icon="Calendar" Label="Range" >
+                <AppBarButton.Flyout>
+                    <MenuFlyout>
+                        <ToggleMenuFlyoutItem x:Name="uiZakresAll" x:Uid="uiZakresAll" Text="All" IsChecked="True" />
+                        <ToggleMenuFlyoutItem x:Name="uiZakresMonth" x:Uid="uiZakresMonth" Text="This month"  />
+                        <ToggleMenuFlyoutItem x:Name="uiZakresDay" x:Uid="uiZakresDay" Text="Today"  />
+                    </MenuFlyout>
+                    </AppBarButton.Flyout> 
+            </AppBarButton>
             <AppBarButton x:Uid="uiRefresh" Icon="Refresh" Label="Refresh" Click="uiRefresh_Click" />
         </CommandBar>
 

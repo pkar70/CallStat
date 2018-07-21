@@ -71,9 +71,9 @@ NotInheritable Class App
     End Function
 
     Public Shared Async Sub DialogBoxRes(sMsg As String, sAddInfo As String)
-        Dim sTxt = GetLangString(sMsg)
+        Dim sTxt As String = GetLangString(sMsg)
         If sAddInfo IsNot Nothing Then sTxt = sTxt & ":" & sAddInfo
-        Dim oMsg As New MessageDialog(sTxt)
+        Dim oMsg As MessageDialog = New MessageDialog(sTxt)
         Await oMsg.ShowAsync
     End Sub
 
