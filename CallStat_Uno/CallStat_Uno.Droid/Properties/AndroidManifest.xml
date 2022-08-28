@@ -1,0 +1,7 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="pkar.CallStat" android:versionCode="21051" android:versionName="10.2105.1.0" android:installLocation="auto">
+	<uses-sdk android:minSdkVersion="16" android:targetSdkVersion="30" />
+	<uses-permission android:name="android.permission.READ_CALL_LOG" />
+	<uses-permission android:name="android.permission.READ_CONTACTS" />
+	<application android:label="Calls' stat" android:icon="@drawable/Icon123"></application>
+</manifest>
